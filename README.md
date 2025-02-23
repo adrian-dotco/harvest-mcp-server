@@ -20,34 +20,25 @@ An MCP server that lets you log Harvest time entries using natural language, inc
 
 ## Installation
 
-### Installation
-
 1. Install the [Claude desktop app](https://claude.ai/desktop)
 
-2. Clone this repository:
+2. Install the Harvest MCP server globally:
 ```bash
-git clone https://github.com/adrian-dotco/harvest-mcp-server.git
-cd harvest-mcp-server
+npm install -g @harvest-mcp/server
 ```
 
-3. Install dependencies and build:
+3. Run the setup command:
 ```bash
-npm install
-npm run build
+harvest-mcp-server setup
 ```
 
-4. Run the setup script:
-```bash
-node build/setup.js
-```
-
-5. Follow the prompts to enter your:
+4. Follow the prompts to enter your:
    - Harvest Personal Access Token (from https://id.getharvest.com/developers)
    - Harvest Account ID
    - Standard work day hours (default: 7.5)
    - Timezone (default: Australia/Perth)
 
-6. Restart Claude desktop app
+5. Restart Claude desktop app
 
 That's it! You can now use natural language time tracking in Claude.
 
@@ -55,12 +46,8 @@ That's it! You can now use natural language time tracking in Claude.
 
 To update to the latest version:
 ```bash
-git pull
-npm install
-npm run build
+npm update -g @harvest-mcp/server
 ```
-
-The setup script will have configured Claude to use your local build of the server, so any updates you pull will be automatically available after rebuilding.
 
 ## Usage
 
@@ -141,15 +128,6 @@ View recent time entries:
 ```
 Show my recent time entries
 ```
-
-## Configuration
-
-The server supports these environment variables:
-
-- `HARVEST_ACCESS_TOKEN`: Your Harvest personal access token
-- `HARVEST_ACCOUNT_ID`: Your Harvest account ID
-- `STANDARD_WORK_DAY_HOURS`: Default hours for a full work day (default: 7.5)
-- `TIMEZONE`: Your timezone (default: Australia/Perth)
 
 ## Development
 

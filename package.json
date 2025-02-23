@@ -1,16 +1,16 @@
 {
-  "name": "harvest-mcp-server-setup",
-  "version": "0.1.2",
+  "name": "@harvest-mcp/server",
+  "version": "0.2.0",
   "description": "Natural language time tracking with Harvest",
   "type": "module",
   "bin": {
-    "harvest-mcp-server-setup": "./build/setup.js"
+    "harvest-mcp-server": "./build/index.js"
   },
   "files": [
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\" && node -e \"require('fs').chmodSync('build/setup.js', '755')\"",
+    "build": "tsc && chmod +x build/index.js build/setup.js",
     "prepare": "npm run build",
     "watch": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js"
@@ -18,7 +18,8 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
     "axios": "^1.7.9",
-    "chrono-node": "^2.7.8"
+    "chrono-node": "^2.7.8",
+    "commander": "^12.1.0"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

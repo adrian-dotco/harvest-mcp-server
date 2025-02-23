@@ -7,8 +7,13 @@ import {
   ListToolsRequestSchema,
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
+import { Command } from 'commander';
 import axios from 'axios';
 import * as chrono from 'chrono-node';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+import * as readline from 'readline';
 
 // Time report response types
 interface TimeReportResult {
@@ -39,15 +44,6 @@ interface TimeReportResponse {
   page: number;
 }
 
-const HARVEST_ACCESS_TOKEN = process.env.HARVEST_ACCESS_TOKEN;
-const HARVEST_ACCOUNT_ID = process.env.HARVEST_ACCOUNT_ID;
-const STANDARD_WORK_DAY_HOURS = parseFloat(process.env.STANDARD_WORK_DAY_HOURS || '7.5');
-const TIMEZONE = process.env.TIMEZONE || 'Australia/Perth';
-
-if (!HARVEST_ACCESS_TOKEN || !HARVEST_ACCOUNT_ID) {
-  throw new Error('HARVEST_ACCESS_TOKEN and HARVEST_ACCOUNT_ID environment variables are required');
-}
-
 // Special patterns for leave requests
 const LEAVE_PATTERNS = {
   sick: {
@@ -66,11 +62,11 @@ class HarvestServer {
   private server: Server;
   private axiosInstance;
 
-  constructor() {
+  constructor(token: string, accountId: string, workDayHours: string, timezone: string) {
     this.server = new Server(
       {
         name: 'harvest-server',
-        version: '0.1.0',
+        version: '0.2.0',
       },
       {
         capabilities: {
@@ -82,8 +78,8 @@ class HarvestServer {
     this.axiosInstance = axios.create({
       baseURL: 'https://api.harvestapp.com/v2',
       headers: {
-        'Authorization': `Bearer ${HARVEST_ACCESS_TOKEN}`,
-        'Harvest-Account-Id': HARVEST_ACCOUNT_ID,
+        'Authorization': `Bearer ${token}`,
+        'Harvest-Account-Id': accountId,
         'User-Agent': 'Harvest MCP Server (cline@example.com)',
       },
     });
@@ -109,7 +105,7 @@ class HarvestServer {
 
   private parseDateRange(text: string): { from: string; to: string } {
     const lowercaseText = text.toLowerCase();
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
+    const now = new Date();
     
     // Handle common time ranges
     if (lowercaseText.includes('last month')) {
@@ -164,7 +160,7 @@ class HarvestServer {
 
   private async parseTimeEntry(text: string) {
     const lowercaseText = text.toLowerCase();
-    const now = new Date(new Date().toLocaleString('en-US', { timeZone: TIMEZONE }));
+    const now = new Date();
     
     // Check if this is a leave request
     const leaveCheck = this.isLeaveRequest(text);
@@ -172,7 +168,7 @@ class HarvestServer {
       // For leave requests, use the full work day
       return {
         spent_date: now.toISOString().split('T')[0],
-        hours: STANDARD_WORK_DAY_HOURS,
+        hours: parseFloat(process.env.STANDARD_WORK_DAY_HOURS || '7.5'),
         isLeave: true,
         leaveType: leaveCheck.type
       };
@@ -495,5 +491,129 @@ class HarvestServer {
   }
 }
 
-const server = new HarvestServer();
-server.run().catch(console.error);
+async function setupCommand() {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  const question = (query: string): Promise<string> => {
+    return new Promise((resolve) => {
+      rl.question(query, resolve);
+    });
+  };
+
+  console.log('\n🌱 Harvest MCP Server Setup\n');
+
+  console.log('First, we need your Harvest credentials.');
+  console.log('You can find these at: https://id.getharvest.com/developers\n');
+  
+  const token = await question('Personal Access Token: ');
+  const accountId = await question('Account ID: ');
+  
+  console.log('\nNow, let\'s configure your work day settings.\n');
+  
+  const hours = await question('Standard work day hours (default: 7.5): ');
+  const timezone = await question('Timezone (default: Australia/Perth): ');
+
+  const config = {
+    mcpServers: {
+      "harvest-server": {
+        command: "harvest-mcp-server",
+        args: [],
+        env: {
+          HARVEST_ACCESS_TOKEN: token,
+          HARVEST_ACCOUNT_ID: accountId,
+          STANDARD_WORK_DAY_HOURS: hours || '7.5',
+          TIMEZONE: timezone || 'Australia/Perth'
+        },
+        disabled: false,
+        autoApprove: []
+      }
+    }
+  };
+
+  const desktopConfigPath = path.join(os.homedir(), 'Library/Application Support/Claude/claude_desktop_config.json');
+  const vscodeConfigPath = path.join(os.homedir(), 'Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json');
+
+  try {
+    let existingConfig = {};
+    if (fs.existsSync(desktopConfigPath)) {
+      existingConfig = JSON.parse(fs.readFileSync(desktopConfigPath, 'utf8'));
+    }
+    
+    const newConfig = {
+      ...existingConfig,
+      mcpServers: {
+        ...(existingConfig as any).mcpServers,
+        ...config.mcpServers
+      }
+    };
+
+    fs.writeFileSync(desktopConfigPath, JSON.stringify(newConfig, null, 2));
+    console.log('\n✅ Claude desktop app configured successfully');
+  } catch (error) {
+    console.log('\n⚠️ Could not configure Claude desktop app');
+    console.log('You may need to add this configuration manually to:');
+    console.log(desktopConfigPath);
+    console.log('\nConfiguration to add:');
+    console.log(JSON.stringify(config, null, 2));
+  }
+
+  try {
+    if (fs.existsSync(vscodeConfigPath)) {
+      let existingConfig = JSON.parse(fs.readFileSync(vscodeConfigPath, 'utf8'));
+      const newConfig = {
+        ...existingConfig,
+        mcpServers: {
+          ...(existingConfig as any).mcpServers,
+          ...config.mcpServers
+        }
+      };
+      fs.writeFileSync(vscodeConfigPath, JSON.stringify(newConfig, null, 2));
+      console.log('✅ VSCode extension configured successfully');
+    }
+  } catch (error) {
+    // VSCode config is optional, so we don't show an error
+  }
+
+  console.log('\n🎉 Setup complete!');
+  console.log('\nPlease:');
+  console.log('1. Restart the Claude desktop app');
+  console.log('2. Try a test command like: "Show time report for this week"\n');
+
+  rl.close();
+}
+
+const program = new Command();
+
+program
+  .name('harvest-mcp-server')
+  .description('Harvest MCP Server with natural language time tracking')
+  .version('0.2.0');
+
+program
+  .command('setup', { isDefault: false })
+  .description('Configure the Harvest MCP server')
+  .action(setupCommand);
+
+program
+  .command('start', { isDefault: true })
+  .description('Start the Harvest MCP server')
+  .action(() => {
+    const token = process.env.HARVEST_ACCESS_TOKEN;
+    const accountId = process.env.HARVEST_ACCOUNT_ID;
+    const workDayHours = process.env.STANDARD_WORK_DAY_HOURS || '7.5';
+    const timezone = process.env.TIMEZONE || 'Australia/Perth';
+
+    if (!token || !accountId) {
+      console.error('Error: HARVEST_ACCESS_TOKEN and HARVEST_ACCOUNT_ID environment variables are required');
+      console.error('Run "harvest-mcp-server setup" to configure');
+      process.exit(1);
+    }
+
+    const server = new HarvestServer(token, accountId, workDayHours, timezone);
+    server.run().catch(console.error);
+  });
+
+program.parse(process.argv);
