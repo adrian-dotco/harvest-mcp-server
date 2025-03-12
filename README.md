@@ -2,6 +2,10 @@
 
 An MCP server that lets you log Harvest time entries using natural language, including special handling for leave requests. This server makes time tracking more intuitive by understanding natural language inputs and automatically handling common scenarios like leave requests.
 
+<a href="https://glama.ai/mcp/servers/u2bir05hxy">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/u2bir05hxy/badge" alt="Harvest Natural Language Time Entry Server MCP server" />
+</a>
+
 ## Features
 
 - 🗣️ Natural language time entry parsing
