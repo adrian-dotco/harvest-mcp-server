@@ -1,6 +1,6 @@
 # Harvest Natural Language Time Entry MCP Server
 
-An MCP server that lets you log Harvest time entries using natural language, including special handling for leave requests. This server makes time tracking more intuitive by understanding natural language inputs and automatically handling common scenarios like leave requests.
+An MCP server that lets you log Harvest time entries and track time with running timers using natural language. This server makes time tracking more intuitive by understanding natural language inputs, supporting real-time timer tracking, and automatically handling common scenarios like leave requests.
 
 <a href="https://glama.ai/mcp/servers/u2bir05hxy">
   <img width="380" height="200" src="https://glama.ai/mcp/servers/u2bir05hxy/badge" alt="Harvest Natural Language Time Entry Server MCP server" />
@@ -9,6 +9,7 @@ An MCP server that lets you log Harvest time entries using natural language, inc
 ## Features
 
 - 🗣️ Natural language time entry parsing
+- ⏱️ **Running timer support** (start, stop, view, restart, delete)
 - 🏖️ Special leave request handling (e.g., "I'm off sick today")
 - ⏰ Configurable work day hours
 - 🌍 Timezone support
@@ -86,6 +87,60 @@ Leave requests (automatically uses standard work day hours):
 "I'm unwell today"
 "Taking annual leave next week"
 ```
+
+### Timer Tools
+
+Track time in real-time with running timers:
+
+#### start_timer
+Start a running timer using natural language:
+```
+"Start timer for Project X doing development"
+"Start working on Project Y bug fixes"
+"Begin timer for Client ABC - Design work"
+```
+
+The timer will continue running until you stop it, tracking elapsed time automatically.
+
+#### get_running_timer
+Check your currently running timer:
+```
+"What timer is running?"
+"Show my current timer"
+"Check running timer"
+```
+
+Returns the project, task, notes, and elapsed time for the running timer.
+
+#### stop_timer
+Stop the currently running timer:
+```
+"Stop timer"
+"Stop my current timer"
+"End timer"
+```
+
+This converts the running timer to a completed time entry with the total hours tracked.
+
+#### restart_timer
+Restart your most recent timer or a specific timer:
+```
+"Restart my last timer"
+"Restart timer"
+"Resume previous timer"
+```
+
+This starts a new timer with the same project and task as before.
+
+#### delete_timer
+Cancel a running timer without saving it:
+```
+"Cancel current timer"
+"Delete running timer"
+"Remove timer"
+```
+
+This deletes the timer without creating a time entry.
 
 ### get_time_report
 Get time reports using natural language queries. Examples:
