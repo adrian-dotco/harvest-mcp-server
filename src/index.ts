@@ -330,6 +330,36 @@ class HarvestServer {
             required: ['text'],
           },
         },
+        {
+          name: 'log_time_by_id',
+          description: 'Log a time entry using explicit project and task IDs — bypasses fuzzy matching for guaranteed accuracy. Always prefer this over log_time when IDs are known.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              project_id: {
+                type: 'number',
+                description: 'Harvest project ID (from list_projects)',
+              },
+              task_id: {
+                type: 'number',
+                description: 'Harvest task ID (from list_tasks)',
+              },
+              hours: {
+                type: 'number',
+                description: 'Number of hours to log (e.g. 1.5 for 1hr 30min)',
+              },
+              spent_date: {
+                type: 'string',
+                description: 'Date the time was spent (YYYY-MM-DD)',
+              },
+              notes: {
+                type: 'string',
+                description: 'Optional notes describing the work done',
+              },
+            },
+            required: ['project_id', 'task_id', 'hours', 'spent_date'],
+          },
+        },
       ],
     }));
 
@@ -469,6 +499,43 @@ class HarvestServer {
             if (error instanceof McpError) {
               throw error;
             }
+            if (axios.isAxiosError(error)) {
+              throw new McpError(
+                ErrorCode.InternalError,
+                `Harvest API error: ${error.response?.data?.message ?? error.message}`
+              );
+            }
+            throw error;
+          }
+        }
+
+        case 'log_time_by_id': {
+          const { project_id, task_id, hours, spent_date, notes } = request.params.arguments as {
+            project_id: number;
+            task_id: number;
+            hours: number;
+            spent_date: string;
+            notes?: string;
+          };
+
+          try {
+            const response = await this.axiosInstance.post('/time_entries', {
+              project_id,
+              task_id,
+              hours,
+              spent_date,
+              ...(notes ? { notes } : {}),
+            });
+
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(response.data, null, 2),
+                },
+              ],
+            };
+          } catch (error) {
             if (axios.isAxiosError(error)) {
               throw new McpError(
                 ErrorCode.InternalError,
